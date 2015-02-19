@@ -39,7 +39,6 @@ static OSStatus EZAudioFileReadPermissionFileDoesNotExistCode = -88776;
 
 // constants
 static UInt32 EZAudioFileWaveformDefaultResolution = 1024;
-static NSString *EZAudioFileWaveformDataQueueIdentifier = @"com.ezaudio.waveformQueue";
 
 //------------------------------------------------------------------------------
 
