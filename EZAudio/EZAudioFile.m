@@ -62,7 +62,7 @@ typedef struct
 @interface EZAudioFile ()
 @property (nonatomic) EZAudioFileInfo info;
 @property (nonatomic) pthread_mutex_t lock;
-@property (nonatomic) dispatch_queue_t waveformQueue;
+@property (nonatomic, strong) NSOperation *waveformOperation;
 @end
 
 //------------------------------------------------------------------------------
@@ -81,7 +81,6 @@ typedef struct
         memset(&_info, 0, sizeof(_info));
         _info.permission = EZAudioFilePermissionRead;
         pthread_mutex_init(&_lock, NULL);
-        _waveformQueue = dispatch_queue_create(EZAudioFileWaveformDataQueueIdentifier.UTF8String, DISPATCH_QUEUE_PRIORITY_DEFAULT);
     }
     return self;
 }
@@ -368,9 +367,14 @@ typedef struct
     return [self getWaveformDataWithNumberOfPoints:EZAudioFileWaveformDefaultResolution];
 }
 
+- (EZAudioFloatData *)getWaveformDataWithNumberOfPoints:(UInt32)numberOfPoints
+{
+    return [self getWaveformDataWithNumberOfPoints:numberOfPoints operation:nil];
+}
+
 //------------------------------------------------------------------------------
 
-- (EZAudioFloatData *)getWaveformDataWithNumberOfPoints:(UInt32)numberOfPoints
+- (EZAudioFloatData *)getWaveformDataWithNumberOfPoints:(UInt32)numberOfPoints operation:(NSOperation *)operation
 {
     EZAudioFloatData *waveformData;
     if (pthread_mutex_trylock(&_lock) == 0)
@@ -408,6 +412,11 @@ typedef struct
         SInt64 offset = 0;
         for (SInt64 i = 0; i < numberOfPoints; i++)
         {
+            if (operation.isCancelled)
+            {
+                break;
+            }
+            
             float buffer[framesPerBuffer];
             if (interleaved)
             {
@@ -448,9 +457,12 @@ typedef struct
         
         pthread_mutex_unlock(&_lock);
         
-        waveformData = [EZAudioFloatData dataWithNumberOfChannels:channels
-                                                             buffers:(float **)data
-                                                          bufferSize:numberOfPoints];
+        if (!operation.isCancelled)
+        {
+            waveformData = [EZAudioFloatData dataWithNumberOfChannels:channels
+                                                              buffers:(float **)data
+                                                           bufferSize:numberOfPoints];
+        }
         
         // cleanup
         for (int i = 0; i < channels; i++)
@@ -480,13 +492,38 @@ typedef struct
         return;
     }
 
-    // async get waveform data
-    dispatch_async(self.waveformQueue, ^{
-        EZAudioFloatData *waveformData = [self getWaveformDataWithNumberOfPoints:numberOfPoints];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            completion(waveformData);
-        });
-    });
+    NSCache *cache = [[self class] sharedWaveformCache];
+    NSString *waveformCacheKey = [self url].absoluteString;
+    
+    EZAudioFloatData *waveformData = [cache objectForKey:waveformCacheKey];
+    if (waveformData)
+    {
+        completion(waveformData);
+    }
+    else
+    {
+        NSBlockOperation *operation = [[NSBlockOperation alloc] init];
+        
+        _waveformOperation = operation;
+        __weak typeof(self) weakSelf = self;
+        __weak NSOperation *weakOperation = operation;
+        
+        [operation addExecutionBlock:^{
+            EZAudioFloatData *waveformData = [weakSelf getWaveformDataWithNumberOfPoints:numberOfPoints operation:weakOperation];
+            if (waveformData)
+            {
+                [cache setObject:waveformData forKey:waveformCacheKey];
+            }
+            if (!weakOperation.isCancelled)
+            {
+                [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+                    completion(waveformData);
+                }];
+            }
+        }];
+        
+        [[[self class] sharedWaveformOperationQueue] addOperation:operation];
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -615,5 +652,43 @@ typedef struct
 }
 
 //------------------------------------------------------------------------------
+#pragma mark - Waveform Operation Queue
+//------------------------------------------------------------------------------
+
++ (NSOperationQueue *)sharedWaveformOperationQueue
+{
+    static NSOperationQueue *operationQueue;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        operationQueue = [[NSOperationQueue alloc] init];
+        operationQueue.maxConcurrentOperationCount = 1;
+    });
+    return operationQueue;
+}
+
+//------------------------------------------------------------------------------
+
+- (void)cancelWaveformDataOperation
+{
+    [self.waveformOperation cancel];
+    self.waveformOperation = nil;
+}
+
+//------------------------------------------------------------------------------
+#pragma mark - Waveform Cache
+//------------------------------------------------------------------------------
+
++ (NSCache *)sharedWaveformCache
+{
+    static NSCache *cache;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cache = [[NSCache alloc] init];
+        [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidReceiveMemoryWarningNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *__unused notification) {
+            [cache removeAllObjects];
+        }];
+    });
+    return cache;
+}
 
 @end

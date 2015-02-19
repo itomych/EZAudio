@@ -388,5 +388,13 @@ typedef void (^WaveformDataCompletionBlock)(EZAudioFloatData *waveformData);
                                completion:(WaveformDataCompletionBlock)completion;
 
 //------------------------------------------------------------------------------
+#pragma mark - Waveform Operation Queue
+//------------------------------------------------------------------------------
+
++ (NSOperationQueue *)sharedWaveformOperationQueue;
+
+//------------------------------------------------------------------------------
+
+- (void)cancelWaveformDataOperation;
 
 @end
