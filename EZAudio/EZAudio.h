@@ -24,6 +24,9 @@
 //  THE SOFTWARE.
 
 #import <Foundation/Foundation.h>
+#if TARGET_OS_IPHONE
+  #import <AVFoundation/AVFoundation.h>
+#endif
 
 #pragma mark - 3rd Party Utilties
 #import "AEFloatConverter.h"
