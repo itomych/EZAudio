@@ -412,53 +412,47 @@ typedef struct
                                               0)
                    operation:"Failed to seek frame position within audio file"];
         
-        // allocate an audio buffer list
-        AudioBufferList *audioBufferList = [EZAudio audioBufferListWithNumberOfFrames:(UInt32)totalFrames
-                                                                     numberOfChannels:self.info.clientFormat.mChannelsPerFrame
-                                                                          interleaved:interleaved];
-
-        UInt32 bufferSize = (UInt32)totalFrames;
-        [EZAudio checkResult:ExtAudioFileRead(self.info.extAudioFileRef,
-                                              &bufferSize,
-                                              audioBufferList)
-                   operation:"Failed to read audio data from file waveform"];
-        
         // read through file and calculate rms at each point
-        SInt64 offset = 0;
+        UInt32 bufferSize = (UInt32)framesPerBuffer;
         for (SInt64 i = 0; i < numberOfPoints; i++)
         {
-            float buffer[framesPerBuffer];
+            // allocate an audio buffer list
+            AudioBufferList *audioBufferList = [EZAudio audioBufferListWithNumberOfFrames:bufferSize
+                                                                         numberOfChannels:self.info.clientFormat.mChannelsPerFrame
+                                                                              interleaved:interleaved];
+            
+            [EZAudio checkResult:ExtAudioFileRead(self.info.extAudioFileRef,
+                                                  &bufferSize,
+                                                  audioBufferList)
+                       operation:"Failed to read audio data from file waveform"];
+            
             if (interleaved)
             {
                 float *samples = (float *)audioBufferList->mBuffers[0].mData;
-                memcpy(buffer, &samples[offset], framesPerBuffer * sizeof(float));
                 for (int channel = 0; channel < channels; channel++)
                 {
                     float channelData[framesPerChannel];
                     for (int frame = 0; frame < framesPerChannel; frame++)
                     {
-                        channelData[frame] = buffer[frame * channels + channel];
+                        channelData[frame] = samples[frame * channels + channel];
                     }
                     float rms = [EZAudio RMS:channelData length:(UInt32)framesPerChannel];
                     data[channel][i] = rms;
                 }
-                offset += channels * framesPerBuffer;
             }
             else
             {
                 for (int channel = 0; channel < channels; channel++)
                 {
                     float *samples = (float *)audioBufferList->mBuffers[channel].mData;
-                    memcpy(buffer, &samples[offset], framesPerBuffer * sizeof(float));
-                    float rms = [EZAudio RMS:buffer length:(UInt32)framesPerBuffer];
+                    float rms = [EZAudio RMS:samples length:bufferSize];
                     data[channel][i] = rms;
                 }
-                offset += framesPerBuffer;
             }
+            
+            // clean up
+            [EZAudio freeBufferList:audioBufferList];
         }
-        
-        // clean up
-        [EZAudio freeBufferList:audioBufferList];
         
         // seek back to previous position
         [EZAudio checkResult:ExtAudioFileSeek(self.info.extAudioFileRef,
