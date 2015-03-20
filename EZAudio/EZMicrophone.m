@@ -277,7 +277,7 @@ static OSStatus inputCallback(void                          *inRefCon,
   else {
     _customASBD = YES;
     streamFormat = asbd;
-    [self _configureStreamFormatWithSampleRate:_deviceSampleRate];
+    [self _configureStreamFormatWithSampleRate:asbd.mSampleRate];
   }  
 }
 
