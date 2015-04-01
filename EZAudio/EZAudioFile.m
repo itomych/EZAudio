@@ -697,7 +697,7 @@ typedef struct
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         operationQueue = [[NSOperationQueue alloc] init];
-        operationQueue.maxConcurrentOperationCount = 5;
+        operationQueue.maxConcurrentOperationCount = 3;
     });
     return operationQueue;
 }
