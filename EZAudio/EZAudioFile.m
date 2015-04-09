@@ -634,10 +634,13 @@ typedef struct
     
     // figure out what the max packet size is
     
-    
-    
-    
-    
+    if (self.floatData)
+    {
+        [EZAudio freeFloatBuffers:self.floatData
+                 numberOfChannels:self.clientFormat.mChannelsPerFrame];
+        
+        self.floatData = NULL;
+    }
     
     self.floatData = [EZAudio floatBuffersWithNumberOfFrames:1024
                                             numberOfChannels:self.clientFormat.mChannelsPerFrame];
