@@ -335,8 +335,6 @@ typedef struct
                                          withNumberOfFrames:*bufferSize
                                              toFloatBuffers:self.floatData];
         
-        pthread_mutex_unlock(&_lock);
-        
         if ([self.delegate respondsToSelector:@selector(audioFile:readAudio:withBufferSize:withNumberOfChannels:)])
         {
             UInt32 channels = self.clientFormat.mChannelsPerFrame;
@@ -344,8 +342,10 @@ typedef struct
                            readAudio:self.floatData
                       withBufferSize:*bufferSize
                 withNumberOfChannels:channels];
-            
         }
+        
+        pthread_mutex_unlock(&_lock);
+        
     }
 }
 
@@ -358,6 +358,7 @@ typedef struct
         [EZAudio checkResult:ExtAudioFileSeek(self.info.extAudioFileRef,
                                               frame)
                    operation:"Failed to seek frame position within audio file"];
+
         pthread_mutex_unlock(&_lock);
         
         // notify delegate
@@ -668,10 +669,13 @@ typedef struct
     
     // figure out what the max packet size is
     
-    
-    
-    
-    
+    if (self.floatData)
+    {
+        [EZAudio freeFloatBuffers:self.floatData
+                 numberOfChannels:self.clientFormat.mChannelsPerFrame];
+        
+        self.floatData = NULL;
+    }
     
     self.floatData = [EZAudio floatBuffersWithNumberOfFrames:1024
                                             numberOfChannels:self.clientFormat.mChannelsPerFrame];

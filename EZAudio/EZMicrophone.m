@@ -191,6 +191,11 @@ static OSStatus inputCallback(void                          *inRefCon,
   return self;
 }
 
+-(void)dealloc {
+    [EZAudio freeFloatBuffers:floatBuffers numberOfChannels:streamFormat.mChannelsPerFrame];
+    [EZAudio freeBufferList:microphoneInputBuffer];
+}
+
 #pragma mark - Class Initializers
 +(EZMicrophone *)microphoneWithDelegate:(id<EZMicrophoneDelegate>)microphoneDelegate {
   return [[EZMicrophone alloc] initWithMicrophoneDelegate:microphoneDelegate];
