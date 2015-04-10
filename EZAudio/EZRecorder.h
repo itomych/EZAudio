@@ -108,8 +108,12 @@ typedef NS_ENUM(NSInteger, EZRecorderFileType)
  @param bufferList The AudioBufferList holding the audio data to append
  @param bufferSize The size of each of the buffers in the buffer list.
  */
--(void)appendDataFromBufferList:(AudioBufferList*)bufferList
+-(void)appendDataFromBufferList:(AudioBufferList *)bufferList
                  withBufferSize:(UInt32)bufferSize;
+
+-(void)appendDataFromBufferList:(AudioBufferList *)bufferList
+                 withBufferSize:(UInt32)bufferSize
+        synchronousWriteEnabled:(BOOL)synchronousWriteEnabled;
 
 ///-----------------------------------------------------------
 /// @name Closing The Audio File

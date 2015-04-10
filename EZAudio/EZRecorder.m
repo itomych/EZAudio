@@ -157,7 +157,29 @@
 -(void)appendDataFromBufferList:(AudioBufferList *)bufferList
                  withBufferSize:(UInt32)bufferSize
 {
+    [self appendDataFromBufferList:bufferList
+                    withBufferSize:bufferSize
+           synchronousWriteEnabled:NO];
+}
+
+-(void)appendDataFromBufferList:(AudioBufferList *)bufferList
+                 withBufferSize:(UInt32)bufferSize
+        synchronousWriteEnabled:(BOOL)synchronousWriteEnabled
+{
     if( _destinationFile )
+        if( !_destinationFile )
+        {
+            return;
+        }
+    
+    if( synchronousWriteEnabled )
+    {
+        [EZAudio checkResult:ExtAudioFileWrite(_destinationFile,
+                                               bufferSize,
+                                               bufferList)
+                   operation:"Failed to write audio data to recorded audio file"];
+    }
+    else
     {
         [EZAudio checkResult:ExtAudioFileWriteAsync(_destinationFile,
                                                     bufferSize,
