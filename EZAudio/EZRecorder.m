@@ -92,6 +92,10 @@
             asbd = [EZAudio stereoFloatInterleavedFormatWithSampleRate:sourceFormat.mSampleRate];
             break;
             
+        case EZRecorderFileTypeMonoWAV:
+            asbd = [EZAudio monoFloatFormatWithSampleRate:sourceFormat.mSampleRate];
+            break;
+            
         default:
             asbd = [EZAudio stereoCanonicalNonInterleavedFormatWithSampleRate:sourceFormat.mSampleRate];
             break;
@@ -114,6 +118,7 @@
             break;
             
         case EZRecorderFileTypeWAV:
+        case EZRecorderFileTypeMonoWAV:
             audioFileTypeID = kAudioFileWAVEType;
             break;
             
