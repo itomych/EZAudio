@@ -330,13 +330,13 @@ typedef struct
                      updatedPosition:self.frameIndex];
         }
         
-        // convert into float data
-        [self.floatConverter convertDataFromAudioBufferList:audioBufferList
-                                         withNumberOfFrames:*bufferSize
-                                             toFloatBuffers:self.floatData];
-        
         if ([self.delegate respondsToSelector:@selector(audioFile:readAudio:withBufferSize:withNumberOfChannels:)])
         {
+            // convert into float data
+            [self.floatConverter convertDataFromAudioBufferList:audioBufferList
+                                             withNumberOfFrames:*bufferSize
+                                                 toFloatBuffers:self.floatData];
+            
             UInt32 channels = self.clientFormat.mChannelsPerFrame;
             [self.delegate audioFile:self
                            readAudio:self.floatData
