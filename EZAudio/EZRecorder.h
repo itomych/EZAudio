@@ -100,6 +100,12 @@ typedef NS_ENUM(NSInteger, EZRecorderFileType)
  */
 -(NSURL*)url;
 
+/**
+ Provides the frame index (a.k.a the seek positon) within the audio file as an integer.
+ @return The current frame index within the audio file as a SInt64.
+ */
+-(SInt64)frameIndex;
+
 #pragma mark - Events
 ///-----------------------------------------------------------
 /// @name Appending Data To The Audio File

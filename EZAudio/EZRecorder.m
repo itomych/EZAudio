@@ -211,6 +211,17 @@
     return (__bridge NSURL*)_destinationFileURL;
 }
 
+-(SInt64)frameIndex
+{
+    SInt64 frameIndex = NSNotFound;
+    if ( _destinationFile )
+    {
+        [EZAudio checkResult:ExtAudioFileTell(_destinationFile, &frameIndex)
+                   operation:"Failed to get frame index"];
+    }
+    return frameIndex;
+}
+
 #pragma mark - Dealloc
 -(void)dealloc
 {
